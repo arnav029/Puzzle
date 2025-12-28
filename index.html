@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 20:00</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- THEME ENGINE --- */
+        :root {
+            --bg-color: #EBE9E4;       
+            --text-main: #2C2C2C;      
+            --text-accent: #666666;    
+            --highlight: #000000;      
+            --grain-opacity: 0.04;     
+        }
+
+        body.evening-mode {
+            --bg-color: #121212;       
+            --text-main: #E0E0E0;      
+            --text-accent: #888888;    
+            --highlight: #D4AF37;      
+            --grain-opacity: 0.07;     
+        }
+
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; transition: color 1.5s ease, background-color 1.5s ease; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- TEXTURE --- */
+        .noise {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            opacity: var(--grain-opacity);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 650px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .brand {
+            font-size: 11px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--text-accent);
+            margin-bottom: 60px;
+            font-weight: 400;
+        }
+
+        .reflection-text {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(28px, 4vw, 36px); 
+            line-height: 1.4;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 60px;
+            animation: driftUp 1.5s ease-out;
+        }
+
+        .perspective-box {
+            border-top: 1px solid var(--text-accent);
+            padding-top: 40px;
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-main);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: reveal 2s forwards 0.5s; 
+        }
+
+        /* --- TIMER STYLING --- */
+        .locked-container {
+            margin-top: 20px;
+            color: var(--text-accent);
+            opacity: 0.8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .locked-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .timer {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            letter-spacing: 1px;
+            /* CRITICAL: This prevents the numbers from jittering */
+            font-variant-numeric: tabular-nums; 
+            font-feature-settings: "tnum";
+            font-weight: 400;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes driftUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes reveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading { opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="noise"></div>
+
+    <div class="container">
+        <div class="brand">The 20:00</div>
+        
+        <div id="reflection" class="reflection-text loading">
+            </div>
+
+        <div id="perspective-container">
+            </div>
+    </div>
+
+    <script>
+        // Global variables to hold data
+        let dailyData = null;
+        let countdownInterval = null;
+
+        // Helper: Get IST Date Objects
+        function getISTTime() {
+            const now = new Date();
+            // Convert to UTC
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            // IST is UTC + 5.5 hours
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            return new Date(utc + istOffset);
+        }
+
+        async function init() {
+            try {
+                // 1. Fetch Data
+                const response = await fetch('reflections.json');
+                const data = await response.json();
+                
+                // 2. Find Today's Puzzle
+                const istDate = getISTTime();
+                const day = String(istDate.getDate()).padStart(2, '0');
+                const month = String(istDate.getMonth() + 1).padStart(2, '0');
+                const year = istDate.getFullYear();
+                const todayStr = `${day}/${month}/${year}`;
+                
+                dailyData = data.find(p => p.date === todayStr);
+                const refElement = document.getElementById('reflection');
+
+                if (dailyData) {
+                    refElement.innerText = dailyData.reflection;
+                    refElement.classList.remove('loading');
+                    
+                    // 3. Start Logic Check
+                    checkTimeAndRender();
+                    
+                    // 4. Start the "Heartbeat" (Updates timer every second)
+                    countdownInterval = setInterval(checkTimeAndRender, 1000);
+                } else {
+                    refElement.innerText = "Silence for today.";
+                    refElement.classList.remove('loading');
+                }
+
+            } catch (error) {
+                console.error("System Error:", error);
+            }
+        }
+
+        function checkTimeAndRender() {
+            const istDate = getISTTime();
+            const currentHour = istDate.getHours();
+            const perspContainer = document.getElementById('perspective-container');
+
+            // TARGET: 20:00 IST
+            // If current hour is >= 20, we are in Evening Mode
+            if (currentHour >= 20) {
+                if (countdownInterval) clearInterval(countdownInterval); // Stop timer
+                
+                document.body.classList.add('evening-mode');
+                
+                // Only inject text if it's not already there (prevents flickering)
+                if (!perspContainer.innerHTML.includes('perspective-box')) {
+                    perspContainer.innerHTML = `<div class="perspective-box">${dailyData.perspective}</div>`;
+                }
+            } else {
+                // DAY MODE: Show Timer
+                document.body.classList.remove('evening-mode');
+
+                // Calculate Time Remaining until 20:00:00 today
+                const targetTime = new Date(istDate);
+                targetTime.setHours(20, 0, 0, 0); // Set to 8 PM today
+                
+                const diff = targetTime - istDate; // Difference in milliseconds
+
+                if (diff > 0) {
+                    // Convert to Hours, Minutes, Seconds
+                    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                    const seconds = Math.floor((diff / 1000) % 60);
+
+                    // Pad with zeros (e.g., 5 -> 05)
+                    const hStr = String(hours).padStart(2, '0');
+                    const mStr = String(minutes).padStart(2, '0');
+                    const sStr = String(seconds).padStart(2, '0');
+
+                    perspContainer.innerHTML = `
+                        <div class="locked-container">
+                            <span class="locked-label">CLARITY ARRIVES IN</span>
+                            <span class="timer">${hStr}:${mStr}:${sStr}</span>
+                        </div>
+                    `;
+                } else {
+                    // Edge case: Time just passed 20:00 while viewing
+                    // Force re-check immediately to switch to evening mode
+                    checkTimeAndRender(); 
+                }
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
