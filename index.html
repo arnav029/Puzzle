@@ -28,7 +28,11 @@
         }
 
         /* --- RESET & BASE --- */
-        * { box-sizing: border-box; transition: color 1.5s ease, background-color 1.5s ease; }
+        body, .container, .brand, .reflection-text, .perspective-box, .toggle-label { 
+            transition: color 1.5s ease, background-color 1.5s ease, border-color 1.5s ease, opacity 0.5s ease; 
+        }
+        
+        * { box-sizing: border-box; }
         
         body {
             margin: 0;
@@ -93,6 +97,76 @@
             animation: reveal 2s forwards 0.5s; 
         }
 
+        /* --- PROFESSIONAL TOGGLE SWITCH & LABELS --- */
+        .toggle-wrapper {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-main);
+            cursor: pointer;
+            opacity: 0.5; /* Default inactive state */
+            user-select: none;
+        }
+
+        .toggle-switch {
+            width: 44px; /* Slightly tighter width */
+            height: 24px;
+            border-radius: 50px;
+            border: 1px solid var(--text-accent);
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.4s ease;
+        }
+
+        .toggle-knob {
+            width: 16px;
+            height: 16px;
+            background-color: var(--text-main);
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), background-color 1.5s ease;
+        }
+
+        .toggle-switch:hover {
+            border-color: var(--text-main);
+        }
+
+        /* --- ACTIVE STATES (UX Logic) --- */
+        
+        /* 1. Default (Light Mode): Light label is active */
+        body:not(.evening-mode) .label-light {
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        /* 2. Evening Mode: Dark label becomes active, knob moves */
+        body.evening-mode .label-dark {
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        body.evening-mode .toggle-knob {
+            transform: translateX(20px); /* Slides right */
+            background-color: var(--text-main);
+        }
+        
+        body.evening-mode .toggle-switch {
+            border-color: var(--text-accent);
+        }
+
         /* --- TIMER STYLING --- */
         .locked-container {
             margin-top: 20px;
@@ -114,7 +188,6 @@
             font-family: 'Inter', sans-serif;
             font-size: 14px;
             letter-spacing: 1px;
-            /* CRITICAL: This prevents the numbers from jittering */
             font-variant-numeric: tabular-nums; 
             font-feature-settings: "tnum";
             font-weight: 400;
@@ -136,39 +209,44 @@
 <body>
 
     <div class="noise"></div>
+    
+    <div class="toggle-wrapper">
+        <span class="toggle-label label-light" onclick="setTheme('light')">Light</span>
+        
+        <div id="theme-btn" class="toggle-switch" role="button" aria-label="Toggle Dark Mode">
+            <div class="toggle-knob"></div>
+        </div>
+        
+        <span class="toggle-label label-dark" onclick="setTheme('dark')">Dark</span>
+    </div>
 
     <div class="container">
         <div class="brand">The 20:00</div>
         
         <div id="reflection" class="reflection-text loading">
-            </div>
+        </div>
 
         <div id="perspective-container">
-            </div>
+        </div>
     </div>
 
     <script>
-        // Global variables to hold data
+        // Global variables
         let dailyData = null;
         let countdownInterval = null;
 
-        // Helper: Get IST Date Objects
         function getISTTime() {
             const now = new Date();
-            // Convert to UTC
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            // IST is UTC + 5.5 hours
             const istOffset = 5.5 * 60 * 60 * 1000;
             return new Date(utc + istOffset);
         }
 
         async function init() {
             try {
-                // 1. Fetch Data
                 const response = await fetch('reflections.json');
                 const data = await response.json();
                 
-                // 2. Find Today's Puzzle
                 const istDate = getISTTime();
                 const day = String(istDate.getDate()).padStart(2, '0');
                 const month = String(istDate.getMonth() + 1).padStart(2, '0');
@@ -181,19 +259,39 @@
                 if (dailyData) {
                     refElement.innerText = dailyData.reflection;
                     refElement.classList.remove('loading');
-                    
-                    // 3. Start Logic Check
                     checkTimeAndRender();
-                    
-                    // 4. Start the "Heartbeat" (Updates timer every second)
                     countdownInterval = setInterval(checkTimeAndRender, 1000);
                 } else {
                     refElement.innerText = "Silence for today.";
                     refElement.classList.remove('loading');
                 }
 
+                // Add listener to the switch itself
+                document.getElementById('theme-btn').addEventListener('click', toggleThemeManual);
+
             } catch (error) {
                 console.error("System Error:", error);
+            }
+        }
+
+        // Helper for the clickable text labels
+        function setTheme(mode) {
+            if (mode === 'dark') {
+                document.body.classList.add('evening-mode');
+                localStorage.setItem('userTheme', 'dark');
+            } else {
+                document.body.classList.remove('evening-mode');
+                localStorage.setItem('userTheme', 'light');
+            }
+        }
+
+        function toggleThemeManual() {
+            const isCurrentlyDark = document.body.classList.contains('evening-mode');
+            
+            if (isCurrentlyDark) {
+                setTheme('light');
+            } else {
+                setTheme('dark');
             }
         }
 
@@ -201,35 +299,41 @@
             const istDate = getISTTime();
             const currentHour = istDate.getHours();
             const perspContainer = document.getElementById('perspective-container');
+            
+            // --- THEME LOGIC ---
+            const savedTheme = localStorage.getItem('userTheme');
 
-            // TARGET: 20:00 IST
-            // If current hour is >= 20, we are in Evening Mode
-            if (currentHour >= 20) {
-                if (countdownInterval) clearInterval(countdownInterval); // Stop timer
-                
+            if (savedTheme === 'dark') {
                 document.body.classList.add('evening-mode');
+            } else if (savedTheme === 'light') {
+                document.body.classList.remove('evening-mode');
+            } else {
+                // Auto Mode
+                if (currentHour >= 20) {
+                    document.body.classList.add('evening-mode');
+                } else {
+                    document.body.classList.remove('evening-mode');
+                }
+            }
+
+            // --- CONTENT LOGIC ---
+            if (currentHour >= 20) {
+                if (countdownInterval) clearInterval(countdownInterval);
                 
-                // Only inject text if it's not already there (prevents flickering)
                 if (!perspContainer.innerHTML.includes('perspective-box')) {
                     perspContainer.innerHTML = `<div class="perspective-box">${dailyData.perspective}</div>`;
                 }
             } else {
-                // DAY MODE: Show Timer
-                document.body.classList.remove('evening-mode');
-
-                // Calculate Time Remaining until 20:00:00 today
                 const targetTime = new Date(istDate);
-                targetTime.setHours(20, 0, 0, 0); // Set to 8 PM today
+                targetTime.setHours(20, 0, 0, 0);
                 
-                const diff = targetTime - istDate; // Difference in milliseconds
+                const diff = targetTime - istDate;
 
                 if (diff > 0) {
-                    // Convert to Hours, Minutes, Seconds
                     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
                     const minutes = Math.floor((diff / (1000 * 60)) % 60);
                     const seconds = Math.floor((diff / 1000) % 60);
 
-                    // Pad with zeros (e.g., 5 -> 05)
                     const hStr = String(hours).padStart(2, '0');
                     const mStr = String(minutes).padStart(2, '0');
                     const sStr = String(seconds).padStart(2, '0');
@@ -241,14 +345,11 @@
                         </div>
                     `;
                 } else {
-                    // Edge case: Time just passed 20:00 while viewing
-                    // Force re-check immediately to switch to evening mode
                     checkTimeAndRender(); 
                 }
             }
         }
 
-        // Start
         init();
     </script>
 </body>
