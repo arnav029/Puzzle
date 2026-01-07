@@ -231,7 +231,6 @@
     </div>
 
     <script>
-        // Global variables
         let dailyData = null;
         let countdownInterval = null;
 
@@ -244,21 +243,17 @@
 
         async function init() {
             try {
-                const response = await fetch('reflections.json');
+                const response = await fetch('/api/today');
                 const data = await response.json();
                 
-                const istDate = getISTTime();
-                const day = String(istDate.getDate()).padStart(2, '0');
-                const month = String(istDate.getMonth() + 1).padStart(2, '0');
-                const year = istDate.getFullYear();
-                const todayStr = `${day}/${month}/${year}`;
+                dailyData = data; 
                 
-                dailyData = data.find(p => p.date === todayStr);
                 const refElement = document.getElementById('reflection');
 
-                if (dailyData) {
+                if (dailyData && dailyData.reflection) {
                     refElement.innerText = dailyData.reflection;
                     refElement.classList.remove('loading');
+                    
                     checkTimeAndRender();
                     countdownInterval = setInterval(checkTimeAndRender, 1000);
                 } else {
@@ -266,7 +261,6 @@
                     refElement.classList.remove('loading');
                 }
 
-                // Add listener to the switch itself
                 document.getElementById('theme-btn').addEventListener('click', toggleThemeManual);
 
             } catch (error) {
@@ -274,7 +268,6 @@
             }
         }
 
-        // Helper for the clickable text labels
         function setTheme(mode) {
             if (mode === 'dark') {
                 document.body.classList.add('evening-mode');
