@@ -305,7 +305,7 @@
 
         // --- 4. THE SIGNAL (Sharing) ---
         function shareContent() {
-            const text = `Q: ${dailyData.reflection}\n\nA: ${dailyData.perspective}\n\nMy thought: ${document.getElementById('user-journal').value}\n\nRead more at The2000.com`;
+            const text = `Q: ${dailyData.reflection}\n\nA: ${dailyData.perspective}\n\nMy thought: ${document.getElementById('user-journal').value}\n\nRead more at https://the20.up.railway.com`;
             navigator.clipboard.writeText(text).then(() => {
                 const btn = document.querySelector('.share-btn');
                 btn.innerText = "Copied to Clipboard!";
