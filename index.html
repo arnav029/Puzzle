@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The 20:00</title>
     
+    <link rel="manifest" href="/manifest.json">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
@@ -15,21 +17,19 @@
             --bg-color: #EBE9E4;       
             --text-main: #2C2C2C;      
             --text-accent: #666666;    
-            --highlight: #000000;      
-            --grain-opacity: 0.04;     
+            --input-bg: #Dddbd6;
         }
 
         body.evening-mode {
             --bg-color: #121212;       
             --text-main: #E0E0E0;      
             --text-accent: #888888;    
-            --highlight: #D4AF37;      
-            --grain-opacity: 0.07;     
+            --input-bg: #1E1E1E;
         }
 
-        /* --- RESET & BASE --- */
-        body, .container, .brand, .reflection-text, .perspective-box, .toggle-label { 
-            transition: color 1.5s ease, background-color 1.5s ease, border-color 1.5s ease, opacity 0.5s ease; 
+        /* --- BASE STYLES --- */
+        body, .container, textarea, button { 
+            transition: all 1.5s ease; 
         }
         
         * { box-sizing: border-box; }
@@ -44,26 +44,15 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            overflow: hidden;
+            overflow: hidden; 
             position: relative;
         }
 
-        /* --- TEXTURE --- */
-        .noise {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 5;
-            opacity: var(--grain-opacity);
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        /* --- LAYOUT --- */
         .container {
             position: relative;
             z-index: 10;
-            max-width: 650px;
-            padding: 40px;
+            max-width: 600px;
+            width: 90%;
             text-align: center;
         }
 
@@ -72,277 +61,293 @@
             letter-spacing: 4px;
             text-transform: uppercase;
             color: var(--text-accent);
-            margin-bottom: 60px;
-            font-weight: 400;
+            margin-bottom: 40px;
         }
 
         .reflection-text {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(28px, 4vw, 36px); 
+            font-size: clamp(24px, 4vw, 32px); 
             line-height: 1.4;
-            font-weight: 500;
             color: var(--text-main);
-            margin-bottom: 60px;
-            animation: driftUp 1.5s ease-out;
+            margin-bottom: 40px;
+        }
+
+        /* --- FEATURE: THE MIRROR (Journal) --- */
+        .journal-area {
+            width: 100%;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background: var(--input-bg);
+            border: none;
+            padding: 15px;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            border-radius: 4px;
+            resize: none;
+            outline: none;
+        }
+        
+        /* When locked (after 8pm) */
+        textarea:disabled {
+            opacity: 0.7;
+            font-style: italic;
         }
 
         .perspective-box {
             border-top: 1px solid var(--text-accent);
-            padding-top: 40px;
+            padding-top: 30px;
             font-size: 15px;
             line-height: 1.8;
             color: var(--text-main);
-            opacity: 0;
-            transform: translateY(20px);
-            animation: reveal 2s forwards 0.5s; 
+            animation: reveal 2s forwards; 
         }
 
-        /* --- PROFESSIONAL TOGGLE SWITCH & LABELS --- */
-        .toggle-wrapper {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            z-index: 20;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .toggle-label {
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-main);
-            cursor: pointer;
-            opacity: 0.5; /* Default inactive state */
-            user-select: none;
-        }
-
-        .toggle-switch {
-            width: 44px; /* Slightly tighter width */
-            height: 24px;
-            border-radius: 50px;
-            border: 1px solid var(--text-accent);
-            background: transparent;
-            cursor: pointer;
-            position: relative;
-            transition: border-color 0.4s ease;
-        }
-
-        .toggle-knob {
-            width: 16px;
-            height: 16px;
-            background-color: var(--text-main);
-            border-radius: 50%;
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), background-color 1.5s ease;
-        }
-
-        .toggle-switch:hover {
-            border-color: var(--text-main);
-        }
-
-        /* --- ACTIVE STATES (UX Logic) --- */
-        
-        /* 1. Default (Light Mode): Light label is active */
-        body:not(.evening-mode) .label-light {
-            opacity: 1;
-            font-weight: 600;
-        }
-
-        /* 2. Evening Mode: Dark label becomes active, knob moves */
-        body.evening-mode .label-dark {
-            opacity: 1;
-            font-weight: 600;
-        }
-
-        body.evening-mode .toggle-knob {
-            transform: translateX(20px); /* Slides right */
-            background-color: var(--text-main);
-        }
-        
-        body.evening-mode .toggle-switch {
-            border-color: var(--text-accent);
-        }
-
-        /* --- TIMER STYLING --- */
-        .locked-container {
+        /* --- FEATURE: THE SIGNAL (Share Button) --- */
+        .share-btn {
             margin-top: 20px;
+            background: transparent;
+            border: 1px solid var(--text-accent);
             color: var(--text-accent);
-            opacity: 0.8;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .locked-label {
-            font-size: 10px;
-            letter-spacing: 2px;
+            padding: 8px 16px;
+            font-size: 11px;
             text-transform: uppercase;
-        }
-
-        .timer {
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
             letter-spacing: 1px;
-            font-variant-numeric: tabular-nums; 
-            font-feature-settings: "tnum";
-            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .share-btn:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
         }
 
-        /* --- ANIMATIONS --- */
-        @keyframes driftUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* --- FEATURE: THE TIME CAPSULE (Archive) --- */
+        .archive-icon {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            cursor: pointer;
+            opacity: 0.5;
+            font-size: 20px;
+            z-index: 20;
+        }
+        .archive-icon:hover { opacity: 1; }
+
+        .archive-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .archive-list {
+            max-height: 60vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+        .archive-item {
+            display: block;
+            padding: 10px;
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .archive-item:hover { color: #fff; }
+        .close-modal {
+            margin-top: 20px;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: underline;
         }
 
-        @keyframes reveal {
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .loading { opacity: 0; }
+        /* Timer & Anim */
+        .locked-container { color: var(--text-accent); font-size: 12px; letter-spacing: 1px; }
+        @keyframes reveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="noise"></div>
-    
-    <div class="toggle-wrapper">
-        <span class="toggle-label label-light" onclick="setTheme('light')">Light</span>
-        
-        <div id="theme-btn" class="toggle-switch" role="button" aria-label="Toggle Dark Mode">
-            <div class="toggle-knob"></div>
-        </div>
-        
-        <span class="toggle-label label-dark" onclick="setTheme('dark')">Dark</span>
+    <div id="archiveModal" class="archive-modal">
+        <div class="brand">Time Capsule</div>
+        <div class="archive-list" id="archiveList"></div>
+        <div class="close-modal" onclick="toggleArchive()">Close</div>
     </div>
 
     <div class="container">
-        <div class="brand">The 20:00</div>
+        <div class="brand" id="date-display">THE 20:00</div>
         
-        <div id="reflection" class="reflection-text loading">
+        <div id="reflection" class="reflection-text">Loading...</div>
+
+        <div class="journal-area" id="journal-container" style="display:none;">
+            <textarea id="user-journal" placeholder="What is your answer? (Your thoughts are private, saved only on this device)"></textarea>
         </div>
 
-        <div id="perspective-container">
-        </div>
+        <div id="perspective-container"></div>
     </div>
+
+    <div class="archive-icon" onclick="toggleArchive()" title="Past Reflections">↺</div>
 
     <script>
         let dailyData = null;
         let countdownInterval = null;
+        
+        // --- 1. SETUP & DATA FETCHING ---
+        async function init(dateQuery = null) {
+            try {
+                // If a date is requested (Archive Mode), fetch that. Otherwise fetch Today.
+                const url = dateQuery ? `/api/archive?date=${dateQuery}` : '/api/today';
+                const response = await fetch(url);
+                dailyData = await response.json();
+                
+                // Update Date Display
+                document.getElementById('date-display').innerText = dailyData.date || "THE 20:00";
 
+                // Update Reflection Text
+                const refElement = document.getElementById('reflection');
+                refElement.innerText = dailyData.reflection || "Silence.";
+                
+                // If it's an archive view, we force "evening mode" (revealed)
+                if (dateQuery) {
+                    renderRevealedState(true); // true = read-only mode for journal
+                } else {
+                    checkTimeAndRender();
+                    // Clear old interval if exists, start new one
+                    if(countdownInterval) clearInterval(countdownInterval);
+                    countdownInterval = setInterval(checkTimeAndRender, 1000);
+                }
+
+                setupJournal(dailyData.date); // Load saved answer for this specific date
+
+            } catch (error) { console.error("Error:", error); }
+        }
+
+        // --- 2. TIME & RENDER LOGIC ---
         function getISTTime() {
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const istOffset = 5.5 * 60 * 60 * 1000;
-            return new Date(utc + istOffset);
-        }
-
-        async function init() {
-            try {
-                const response = await fetch('/api/today');
-                const data = await response.json();
-                
-                dailyData = data; 
-                
-                const refElement = document.getElementById('reflection');
-
-                if (dailyData && dailyData.reflection) {
-                    refElement.innerText = dailyData.reflection;
-                    refElement.classList.remove('loading');
-                    
-                    checkTimeAndRender();
-                    countdownInterval = setInterval(checkTimeAndRender, 1000);
-                } else {
-                    refElement.innerText = "Silence for today.";
-                    refElement.classList.remove('loading');
-                }
-
-                document.getElementById('theme-btn').addEventListener('click', toggleThemeManual);
-
-            } catch (error) {
-                console.error("System Error:", error);
-            }
-        }
-
-        function setTheme(mode) {
-            if (mode === 'dark') {
-                document.body.classList.add('evening-mode');
-                localStorage.setItem('userTheme', 'dark');
-            } else {
-                document.body.classList.remove('evening-mode');
-                localStorage.setItem('userTheme', 'light');
-            }
-        }
-
-        function toggleThemeManual() {
-            const isCurrentlyDark = document.body.classList.contains('evening-mode');
-            
-            if (isCurrentlyDark) {
-                setTheme('light');
-            } else {
-                setTheme('dark');
-            }
+            return new Date(utc + (5.5 * 60 * 60 * 1000));
         }
 
         function checkTimeAndRender() {
             const istDate = getISTTime();
             const currentHour = istDate.getHours();
-            const perspContainer = document.getElementById('perspective-container');
             
-            // --- THEME LOGIC ---
-            const savedTheme = localStorage.getItem('userTheme');
+            // Auto-Theme
+            if (currentHour >= 20) document.body.classList.add('evening-mode');
+            else document.body.classList.remove('evening-mode');
 
-            if (savedTheme === 'dark') {
-                document.body.classList.add('evening-mode');
-            } else if (savedTheme === 'light') {
-                document.body.classList.remove('evening-mode');
-            } else {
-                // Auto Mode
-                if (currentHour >= 20) {
-                    document.body.classList.add('evening-mode');
-                } else {
-                    document.body.classList.remove('evening-mode');
-                }
-            }
-
-            // --- CONTENT LOGIC ---
             if (currentHour >= 20) {
                 if (countdownInterval) clearInterval(countdownInterval);
-                
-                if (!perspContainer.innerHTML.includes('perspective-box')) {
-                    perspContainer.innerHTML = `<div class="perspective-box">${dailyData.perspective}</div>`;
-                }
+                renderRevealedState(false);
             } else {
-                const targetTime = new Date(istDate);
-                targetTime.setHours(20, 0, 0, 0);
+                renderLockedState(istDate);
+            }
+        }
+
+        function renderLockedState(istDate) {
+            document.getElementById('journal-container').style.display = 'block';
+            document.getElementById('user-journal').disabled = false;
+            
+            // Timer Logic
+            const target = new Date(istDate);
+            target.setHours(20, 0, 0, 0);
+            const diff = target - istDate;
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            
+            document.getElementById('perspective-container').innerHTML = `
+                <div class="locked-container">PERSPECTIVE ARRIVES IN ${hours}h ${minutes}m</div>
+            `;
+        }
+
+        function renderRevealedState(isArchive) {
+            const container = document.getElementById('perspective-container');
+            const journal = document.getElementById('user-journal');
+            
+            // Show Journal but Lock it
+            document.getElementById('journal-container').style.display = 'block';
+            journal.disabled = true;
+            if(!journal.value) journal.placeholder = "You didn't write anything for this day.";
+
+            // Show Perspective & Share Button
+            container.innerHTML = `
+                <div class="perspective-box">
+                    ${dailyData.perspective}
+                    <br><br>
+                    <button class="share-btn" onclick="shareContent()">Share this Insight</button>
+                </div>
+            `;
+        }
+
+        // --- 3. THE MIRROR (Journal Logic) ---
+        function setupJournal(dateKey) {
+            const journal = document.getElementById('user-journal');
+            // Unique key for every day: e.g., "journal_28/12/2025"
+            const storageKey = 'journal_' + dateKey;
+            
+            // Load saved
+            journal.value = localStorage.getItem(storageKey) || "";
+
+            // Save on typing
+            journal.oninput = () => {
+                localStorage.setItem(storageKey, journal.value);
+            };
+        }
+
+        // --- 4. THE SIGNAL (Sharing) ---
+        function shareContent() {
+            const text = `Q: ${dailyData.reflection}\n\nA: ${dailyData.perspective}\n\nMy thought: ${document.getElementById('user-journal').value}\n\nRead more at The2000.com`;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.share-btn');
+                btn.innerText = "Copied to Clipboard!";
+                setTimeout(() => btn.innerText = "Share this Insight", 2000);
+            });
+        }
+
+        // --- 5. THE TIME CAPSULE (Archive Logic) ---
+        function toggleArchive() {
+            const modal = document.getElementById('archiveModal');
+            const list = document.getElementById('archiveList');
+            
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'flex';
+                // Build list dynamically
+                // NOTE: In a real app, you might fetch this list from API. 
+                // For simplicity, we'll generate dates from Start Date to Yesterday.
+                list.innerHTML = "";
+                const startDate = new Date(2025, 11, 28); // Dec 28 2025 (Month is 0-indexed)
+                const today = getISTTime();
                 
-                const diff = targetTime - istDate;
+                let loopDate = new Date(today);
+                loopDate.setDate(loopDate.getDate() - 1); // Start from yesterday
 
-                if (diff > 0) {
-                    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-                    const seconds = Math.floor((diff / 1000) % 60);
-
-                    const hStr = String(hours).padStart(2, '0');
-                    const mStr = String(minutes).padStart(2, '0');
-                    const sStr = String(seconds).padStart(2, '0');
-
-                    perspContainer.innerHTML = `
-                        <div class="locked-container">
-                            <span class="locked-label">CLARITY ARRIVES IN</span>
-                            <span class="timer">${hStr}:${mStr}:${sStr}</span>
-                        </div>
-                    `;
-                } else {
-                    checkTimeAndRender(); 
+                while (loopDate >= startDate) {
+                    const dateStr = loopDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
+                    const item = document.createElement('div');
+                    item.className = 'archive-item';
+                    item.innerText = dateStr;
+                    item.onclick = () => {
+                        init(dateStr); // Load this date
+                        toggleArchive(); // Close modal
+                    };
+                    list.appendChild(item);
+                    loopDate.setDate(loopDate.getDate() - 1);
                 }
             }
         }
 
+        // Start
         init();
     </script>
 </body>
